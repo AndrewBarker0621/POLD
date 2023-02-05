@@ -2,6 +2,10 @@ import cv2
 import cv2 as open_cv
 import numpy as np
 import logging
+
+import yaml
+
+from create_parking_2D_mysql import DBS
 from drawing_utils import draw_contours
 from colors import COLOR_GREEN, COLOR_WHITE, COLOR_BLUE
 import os
@@ -18,18 +22,36 @@ def empty(path):
         return False
 
 
+def format_data(data_file):
+    with open(data_file, "r") as data:
+        data = yaml.full_load(data)
+    parking_ls = []
+
+    for d in data:
+        parking = [d['id'], d['coordinates'][0][0], d['coordinates'][0][1], d['coordinates'][1][0],
+                   d['coordinates'][1][1], d['coordinates'][2][0], d['coordinates'][2][1], d['coordinates'][3][0],
+                   d['coordinates'][3][1], d['height'], d['width'], d['availability']]
+        parking_ls.append(parking)
+
+    return parking_ls
+
+
 class MotionDetector:
     LAPLACIAN = 1.4
     DETECT_DELAY = 1
 
-    def __init__(self, coordinates):
+    def __init__(self, data, data_file):
+        self.coordinates_data = data
         # self.video = video
-        self.coordinates_data = coordinates
         # self.start_frame = start_frame
+
         self.contours = []
         self.bounds = []
         self.mask = []
+        self.data_file = data_file
 
+        self.upload = DBS('coordinates.yml')
+        self.upload.clean()
 
     def detect_motion(self):
         # capture = open_cv.VideoCapture(self.video)
@@ -61,6 +83,14 @@ class MotionDetector:
                 thickness=-1,
                 lineType=open_cv.LINE_8)
 
+            for index, p in enumerate(coordinates_data):
+                p["availability"] = 1
+
+                with open(self.data_file, "w") as f:
+                    yaml.dump(coordinates_data, f)
+                    
+            print(format_data(self.data_file))
+
             mask = mask == 255
             self.mask.append(mask)
             logging.debug("mask: %s", self.mask)
@@ -75,6 +105,7 @@ class MotionDetector:
 
         while True:
             time.sleep(0.5)
+
             while True:
                 try:
                     frame = cv2.imread(frame_path)
@@ -128,11 +159,12 @@ class MotionDetector:
                         times[index] = position_in_seconds
                 bbox = t2c(label_path)
                 for i in range(len(space)):
-                    p1 = space[i].reshape([4,2])
+                    p1 = space[i].reshape([4, 2])
                     size = intersection(p1, p1)
                     flag = 0
                     for j in range(len(bbox)):
-                        p2 = [(bbox[j,1], bbox[j,2]), (bbox[j,3], bbox[j,2]), (bbox[j,3], bbox[j,4]), (bbox[j,1], bbox[j,4])]
+                        p2 = [(bbox[j, 1], bbox[j, 2]), (bbox[j, 3], bbox[j, 2]), (bbox[j, 3], bbox[j, 4]),
+                              (bbox[j, 1], bbox[j, 4])]
                         inter_area = intersection(p1, p2)
                         if inter_area >= size * 0.51:
                             flag = 1
@@ -144,13 +176,27 @@ class MotionDetector:
             i = 0
             for index, p in enumerate(coordinates_data):
                 coordinates = self._coordinates(p)
-                
+
                 if (statuses[index] == False & occu[i] == True) | occu[i] == True:
                     color = COLOR_BLUE
+                    p["availability"] = 1
                 else:
                     color = COLOR_GREEN
+                    p["availability"] = 0
+                    with open(self.data_file, "w") as f:
+                        yaml.dump(coordinates_data, f)
+
                 i = i + 1
-                draw_contours(new_frame, coordinates, str(p["id"] + 1), COLOR_WHITE, color)
+                draw_contours(new_frame, coordinates, str(p["id"]), COLOR_WHITE, color)
+
+            formatted = format_data(self.data_file)
+            if self.upload.empty():
+                self.upload.insert(formatted)
+                print('insert')
+
+            else:
+                self.upload.update(formatted)
+                print('update')
 
             open_cv.imshow('real-time', new_frame)
             k = open_cv.waitKey(1)

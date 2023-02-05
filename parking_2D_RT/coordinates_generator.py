@@ -1,3 +1,4 @@
+import cv2
 import cv2 as open_cv
 import numpy as np
 
@@ -16,8 +17,12 @@ class CoordinatesGenerator:
 
         self.image = open_cv.imread(image).copy()
         self.click_count = 0
-        self.ids = 0
+        self.ids = 1
         self.coordinates = []
+
+        self.plan = cv2.imread(image)
+        self.height = self.plan.shape[0]
+        self.width = self.plan.shape[1]
 
         open_cv.namedWindow(self.caption, open_cv.WINDOW_GUI_EXPANDED)
         open_cv.setMouseCallback(self.caption, self.__mouse_callback)
@@ -70,9 +75,13 @@ class CoordinatesGenerator:
                           "[" + str(self.coordinates[0][0]) + "," + str(self.coordinates[0][1]) + "]," +
                           "[" + str(self.coordinates[1][0]) + "," + str(self.coordinates[1][1]) + "]," +
                           "[" + str(self.coordinates[2][0]) + "," + str(self.coordinates[2][1]) + "]," +
-                          "[" + str(self.coordinates[3][0]) + "," + str(self.coordinates[3][1]) + "]]\n")
+                          "[" + str(self.coordinates[3][0]) + "," + str(self.coordinates[3][1]) + "]]" +
+                          "\n          width: " + str(self.width) +
+                          "\n          height: " + str(self.height) +
+                          "\n          availability: " + str(1) +
+                          "\n")
 
-        draw_contours(self.image, coordinates, str(self.ids + 1), COLOR_WHITE)
+        draw_contours(self.image, coordinates, str(self.ids), COLOR_WHITE)
 
         for i in range(0, 4):
             self.coordinates.pop()

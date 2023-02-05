@@ -1,6 +1,7 @@
 import argparse
 import yaml
 from coordinates_generator import CoordinatesGenerator
+from create_parking_2D_mysql import DBS
 from first_image_generator import FirstImageGenerator
 from motion_detector import MotionDetector
 from colors import *
@@ -36,6 +37,8 @@ def main():
     # start_frame = args.start_frame
 
     if image_file is not None:
+        upload = DBS('coordinates.yml')
+        upload.clean()
 
         while True:
             try:
@@ -48,28 +51,27 @@ def main():
             except:
                 time.sleep(0.1)
                 continue
-        
 
     with open(data_file, "r") as data:
         points = yaml.full_load(data)
         # detector = MotionDetector(points, int(start_frame))
-        detector = MotionDetector(points)
+        detector = MotionDetector(points, data_file)
         detector.detect_motion()
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description=  'Generates Coordinates File')
+    parser = argparse.ArgumentParser(description='Generates Coordinates File')
 
     parser.add_argument("--image",
-                        dest = "image_file",
-                        required = False,
-                        help = "Image file to generate coordinates on")
+                        dest="image_file",
+                        required=False,
+                        help="Image file to generate coordinates on")
 
     parser.add_argument("--data",
-                        dest = "data_file",
-                        required = True,
-                        help = "Data file to be used with OpenCV")
-
+                        dest="data_file",
+                        required=True,
+                        help="Data file to be used with OpenCV")
+    #
     # parser.add_argument("--video",
     #                     dest = "video_file",
     #                     required = True,
@@ -84,10 +86,9 @@ def parse_args():
     return parser.parse_args()
 
 
-
 if __name__ == '__main__':
     capture_init_img()
-    t = threading.Thread(target = yolov5)
+    t = threading.Thread(target=yolov5)
     t.start()
     time.sleep(5)
     main()

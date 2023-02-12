@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Parking_Availability</title>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="stylesheet" href="../static/css/responsive.css">
+    <!-- Responsive -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+
+</head>
+<body>
+
+    <script type="text/javascript">
+        function f(){
+          $.getJSON("/lidar",function(result){});
+        }
+        window.setInterval(f, 1000);
+    </script>
+
+
+    <!--Title-->
+    <section class="page-title">
+        <h1 style="text-align:center">Parking Lot Occupation among School of Civil Engineering </h1>
+    </section>
+
+    <section class="comments">
+        <h4 id="timer" style="text-align:center"></h4>
+        <div class="weather">
+            <a class="weatherwidget-io" href="https://forecast7.com/en/n33d87151d21/sydney/" data-label_1="SYDNEY" data-label_2="WEATHER" data-font="Arimo" data-icons="Climacons" data-theme="pure" >SYDNEY WEATHER</a>
+        </div>>
+    </section>
+
+    <td><canvas id="canvas"></canvas></td>
+
+    <div id="canvas_plan" c_plan="{{plans}}" style="display:none"></div>
+
+    <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+
+    <script type="text/javascript">
+
+        const canvas = document.querySelector("#canvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = {{plans[0][10]}} + {{plans[-1][10]}} + 40;
+
+        if({{plans[0][9]}} > {{plans[-1][9]}}){
+            canvas.height = {{plans[0][9]}};
+        }
+        else{
+            canvas.height = {{plans[-1][9]}};
+        }
+
+        ctx.beginPath();
+        ctx.moveTo({{plans[0][10]}}, 0);
+        ctx.lineTo({{plans[0][10]}}, canvas.height);
+        ctx.closePath();
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "black";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo({{plans[0][10]}} + 40, 0);
+        ctx.lineTo({{plans[0][10]}} + 40, canvas.height);
+        ctx.closePath();
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "black";
+        ctx.stroke();
+
+
+        function draw_parking () {
+
+            fetch('/data').then(function(res) {
+              return res.json()
+            }).then(function(json) {
+
+                for (let i = 0; i < json.length; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(json[i].tl_x, json[i].tl_y);
+                    ctx.lineTo(json[i].tr_x, json[i].tr_y);
+                    ctx.lineTo(json[i].br_x, json[i].br_y);
+                    ctx.lineTo(json[i].bl_x, json[i].bl_y);
+                    ctx.closePath();
+
+                    ctx.lineWidth = 4;
+                    if (json[i].status === 1) {
+                        ctx.strokeStyle = "red";
+                    }
+
+                    if (json[i].status === 0) {
+                        ctx.strokeStyle = "green";
+                    }
+                    ctx.stroke();
+
+                    ctx.lineWidth = 5;  // 指定描边线的宽度
+
+                    ctx.save();
+                    ctx.beginPath();
+
+                    // 写字
+                    ctx.font = "28px orbitron";
+                    ctx.fillText(json[i].id, json[i].tl_x - (json[i].tl_x - json[i].br_x)/2, json[i].tl_y - (json[i].tl_y - json[i].br_y)/2);
+
+                    ctx.restore();
+                    ctx.closePath();
+
+                }
+
+            }).catch(function(err) {
+              console.log(err.message)
+            })
+
+        }
+
+        setInterval(draw_parking, 3000)
+
+    </script>
+
+    <!-- jequery plugins -->
+    <script src="../static/js/jquery.min.js"></script>
+
+
+    <!-- custom script -->
+    <script src="../static/js/script.js"></script>
+
+
+
+    <!-- weather script -->
+    <script>
+        !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');
+    </script>
+
+
+</body>
+</html>
